@@ -1,29 +1,34 @@
 pipeline {
     agent any
 
+    tools {
+        python 'Python3.10' // Pastikan Python versi ini dikonfigurasi di Jenkins
+    }
+
     stages {
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/nissrinayy/sast-demo-app.git', branch: 'main'
             }
         }
+
         stage('Install Dependencies') {
             steps {
                 sh '''
                     python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install bandit
+                    venv/bin/pip install --upgrade pip
+                    venv/bin/pip install bandit
+                    if [ -f requirements.txt ]; then venv/bin/pip install -r requirements.txt; fi
                 '''
             }
         }
+
         stage('SAST Analysis') {
             steps {
                 sh '''
-                    . venv/bin/activate
-                    bandit -f xml -o bandit-output.xml -r . || true
+                    venv/bin/bandit -f xml -o bandit-output.xml -r . || true
                 '''
-                recordIssues tools: [bandit(pattern: 'bandit-output.xml')]
+                recordIssues tools: [bandit(pattern: 'bandit-output.xml')], qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
             }
         }
     }
@@ -34,4 +39,3 @@ pipeline {
         }
     }
 }
-
