@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/your-username/sast-demo-app.git', branch: 'master'
+                git url: 'https://github.com/nissrinayy/sast-demo-app.git', branch: 'main'
             }
         }
         stage('Install Dependencies') {
