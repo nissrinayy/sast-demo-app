@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        python 'Python3.10' // Pastikan Python versi ini dikonfigurasi di Jenkins
-    }
-
     stages {
         stage('Checkout') {
             steps {
