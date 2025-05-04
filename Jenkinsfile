@@ -1,37 +1,51 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/nissrinayy/sast-demo-app.git', branch: 'main'
-            }
-        }
+  environment {
+    VENV = 'venv'
+    SAST_SARIF = 'bandit-output.sarif'
+  }
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 -m venv venv
-                    venv/bin/pip install --upgrade pip
-                    venv/bin/pip install bandit
-                    if [ -f requirements.txt ]; then venv/bin/pip install -r requirements.txt; fi
-                '''
-            }
-        }
-
-        stage('SAST Analysis') {
-            steps {
-                sh '''
-                    venv/bin/bandit -f xml -o bandit-output.xml -r . || true
-                '''
-                recordIssues tools: [bandit(pattern: 'bandit-output.xml')], qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
-            }
-        }
+  stages {
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/nissrinayy/sast-demo-app.git', branch: 'main'
+      }
     }
 
-    post {
-        always {
-            cleanWs()
-        }
+    stage('Install Dependencies') {
+      steps {
+        sh '''
+          python3 -m venv ${VENV}
+          ${VENV}/bin/pip install --upgrade pip
+          ${VENV}/bin/pip install bandit
+          if [ -f requirements.txt ]; then
+            ${VENV}/bin/pip install -r requirements.txt
+          fi
+        '''
+      }
     }
+
+    stage('Run Bandit (SARIF)') {
+      steps {
+        sh """
+          ${VENV}/bin/bandit -f sarif -o ${SAST_SARIF} -r . || true
+        """
+      }
+    }
+
+    stage('Publish Issues') {
+      steps {
+        // pake parser SARIF bawaan Warnings NG
+        recordIssues tools: [ sarif(pattern: "${SAST_SARIF}") ],
+                     qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
 }
